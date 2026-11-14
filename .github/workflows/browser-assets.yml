@@ -1,0 +1,68 @@
+name: Build browser generator assets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/browser-assets.yml'
+      - 'brickprint/**'
+  workflow_dispatch:
+  schedule:
+    - cron: '24 10 * * 1'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: browser-generator-assets
+
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch and package catalog data
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/browser-assets"
+          asset_dir="$RUNNER_TEMP/browser-assets"
+          for table in sets inventories inventory_parts inventory_sets inventory_minifigs parts part_categories colors; do
+            curl --fail --location --retry 3 --max-time 120 \
+              "https://cdn.rebrickable.com/media/downloads/$table.csv.gz" -o "$asset_dir/$table.csv.gz"
+            gzip -t "$asset_dir/$table.csv.gz"
+          done
+          curl --fail --location --retry 3 --max-time 240 \
+            'https://library.ldraw.org/library/updates/complete.zip' -o "$RUNNER_TEMP/ldraw.zip"
+          python -m zipfile -t "$RUNNER_TEMP/ldraw.zip"
+          split -b 35m -d "$RUNNER_TEMP/ldraw.zip" "$asset_dir/ldraw-"
+          python -m pip download --no-deps --only-binary=:all: --dest "$asset_dir" \
+            'trimesh==5.2.1' 'networkx==3.4.2'
+          python -m zipfile -c "$asset_dir/engine.zip" brickprint
+          printf '%s\n' 'Catalog data from Rebrickable (https://rebrickable.com/downloads/).' \
+            'Model data from the official LDraw Parts Library (https://library.ldraw.org/updates).' \
+            'LDraw attribution and license files are in its reconstructed archive.' > "$asset_dir/README.txt"
+          ASSET_DIR="$asset_dir" python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+
+          folder = Path(os.environ['ASSET_DIR'])
+          files = {}
+          for path in sorted(folder.iterdir()):
+              with path.open('rb') as file:
+                  files[path.name] = hashlib.file_digest(file, 'sha256').hexdigest()
+          (folder / 'manifest.json').write_text(json.dumps(files, indent=2) + '\n')
+          PY
+      - name: Publish static assets
+        run: |
+          set -euo pipefail
+          git -C "$RUNNER_TEMP/browser-assets" init -b browser-assets
+          git -C "$RUNNER_TEMP/browser-assets" config user.name "github-actions[bot]"
+          git -C "$RUNNER_TEMP/browser-assets" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$RUNNER_TEMP/browser-assets" add .
+          git -C "$RUNNER_TEMP/browser-assets" commit -m "Publish browser generator assets"
+          git -C "$GITHUB_WORKSPACE" fetch "$RUNNER_TEMP/browser-assets" browser-assets
+          git -C "$GITHUB_WORKSPACE" push --force origin FETCH_HEAD:refs/heads/browser-assets
