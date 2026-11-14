@@ -95,7 +95,15 @@ try {
 }
 
 remember.addEventListener("change", () => {
-  if (!remember.checked) {
+  if (remember.checked) {
+    const entered = input.value.trim();
+    const candidate = entered || token;
+    if (validToken(candidate)) {
+      token = candidate;
+      saveToken();
+      connectionState(true);
+    }
+  } else {
     forgetSavedToken();
     connectionState(Boolean(token));
   }
@@ -114,11 +122,18 @@ async function request(path, options = {}, artifactDownload = false) {
   if (response.status === 401) {
     if (savedToken && savedToken === token) forgetSavedToken();
     token = "";
+    input.value = "";
     connectionState(false);
     throw new Error("GitHub rejected the token. Enter a new fine-grained token.");
   }
   if (response.status === 403 || response.status === 404) {
     throw new Error("GitHub denied access. Check that the token is for brick-print-studio and grants Actions read and write.");
+  }
+  if (response.status === 422) {
+    const details = await response.json().catch(() => null);
+    const message = typeof details?.message === "string"
+      ? details.message.replaceAll(token, "[redacted]").slice(0, 300) : "";
+    throw new Error("GitHub rejected the request (422)." + (message ? " " + message : ""));
   }
   if (!response.ok) throw new Error("GitHub returned an error (" + response.status + "). Check the run details or try again.");
   return response;
@@ -161,7 +176,6 @@ form.addEventListener("submit", async event => {
     return;
   }
   const entered = input.value.trim();
-  input.value = "";
   if (entered) {
     if (!validToken(entered)) {
       showError("Use a fine-grained token beginning with github_pat_.");
@@ -175,10 +189,15 @@ form.addEventListener("submit", async event => {
     showError("Connect GitHub to start a print job.");
     return;
   }
+  if (remember.checked) saveToken();
+  input.value = "";
+  connectionState(true);
+  if (byId("storage-note").hidden) byId("connection").open = false;
   busy = true;
   const button = form.querySelector(".start-job");
   button.disabled = true;
   byId("disconnect").disabled = true;
+  input.disabled = remember.disabled = true;
   download.hidden = artifactLink.hidden = runLink.hidden = byId("print-help").hidden = true;
   artifact = null;
   byId("status").textContent = "Starting set " + set + "…";
@@ -187,13 +206,10 @@ form.addEventListener("submit", async event => {
       method: "POST",
       body: JSON.stringify({ref: "main", inputs: {
         set_number: set,
-        max_per_plate: Number(byId("limit").value),
-        calibration: byId("calibration").checked,
+        max_per_plate: byId("limit").value,
+        calibration: String(byId("calibration").checked),
       }}),
     });
-    if (remember.checked) saveToken();
-    connectionState(true);
-    if (byId("storage-note").hidden) byId("connection").open = false;
     const {workflow_run_id: runId} = dispatch.status === 204 ? {} : await dispatch.json();
     if (!Number.isSafeInteger(runId) || runId < 1) {
       runLink.href = github + "/actions/workflows/generate.yml";
@@ -204,10 +220,15 @@ form.addEventListener("submit", async event => {
   } catch (error) {
     byId("status").textContent = "Unable to show the print ZIP.";
     showError(error.message);
+    if (runLink.hidden) {
+      runLink.href = github + "/actions/workflows/generate.yml";
+      runLink.hidden = false;
+    }
   } finally {
     busy = false;
     button.disabled = false;
     byId("disconnect").disabled = false;
+    input.disabled = remember.disabled = false;
   }
 });
 
