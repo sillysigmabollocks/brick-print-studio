@@ -5,3 +5,6 @@ __pycache__/
 
 exports/
 print-result.json
+
+studio/node_modules/
+studio/dist/

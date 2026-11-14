@@ -23,6 +23,17 @@ Then open the repository’s **Settings → Pages**. Select **Deploy from a bran
 
 Open [the browser generator](https://sillysigmabollocks.github.io/brick-print-studio/browser.html), enter a set number or link, and select **Generate Print ZIP**. Your browser creates the ZIP and shows the download on the same page. The first run downloads about 160 MB of Rebrickable catalog and LDraw model data, plus the Python runtime. The browser caches the catalog and model files when site storage is available. The **Build browser generator assets** workflow refreshes those files weekly.
 
+## Develop the browser page
+
+Use Node 22.12 or newer. From the repository root, install the web dependencies and start the Vite development server:
+
+```sh
+npm --prefix studio ci
+npm --prefix studio run dev
+```
+
+Open the URL Vite prints. Run `npm --prefix studio run build` after editing the React frontend. It writes the compiled browser page and its versioned assets to `docs/browser.html` and `docs/showcase/`. Commit those files with the source changes so the existing Pages deployment serves the new build. The browser page loads the same print worker and catalog as before.
+
 ## Generate with GitHub Actions
 
 1. Open the webpage and paste a LEGO set number or a link from LEGO, BrickLink, Rebrickable, or Brickset.

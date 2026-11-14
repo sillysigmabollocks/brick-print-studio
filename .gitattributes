@@ -1,0 +1,3 @@
+docs/showcase/*.js linguist-generated -whitespace
+docs/showcase/*.css linguist-generated
+docs/showcase/third-party-licenses.md linguist-generated text eol=lf
