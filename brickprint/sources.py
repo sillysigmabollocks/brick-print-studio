@@ -29,6 +29,7 @@ GENERAL_BUILDING_PARTS = {'4599a', '4599b'}
 FIGURE_NAME = re.compile(r'^(?:minifig(?:ure)?|mini[ -]?doll)\s+'
                          r'(?:head\b|hair\b|torso\b|legs?\b|arms?\b|hands?\b|'
                          r'hips?\b|helmet\b|cape\b|body\b)', re.I)
+PROJECTILE_NAME = re.compile(r'^(?:projectile|laser beam|blaster bolt)\b', re.I)
 
 
 def fetch(url, destination, status, *, client=None, sleep=time.sleep):
@@ -99,9 +100,12 @@ def catalog_paths(directory, status, downloader=fetch):
     return paths
 
 
-def classify(part, name, category, material):
+def classify(part, name, category, material, *, include_minifigures=False, include_projectiles=True):
     category = category.casefold().strip()
-    if (category.startswith(('minifig', 'minidoll')) or FIGURE_NAME.match(name)) and part not in GENERAL_BUILDING_PARTS:
+    if not include_projectiles and PROJECTILE_NAME.match(name):
+        return 'projectiles disabled'
+    if (not include_minifigures and part not in GENERAL_BUILDING_PARTS
+            and (category.startswith(('minifig', 'minidoll')) or FIGURE_NAME.match(name))):
         return 'minifigure-specific part'
     if category in NONPRINTABLE_CATEGORIES or NONPRINTABLE_NAME.match(name):
         return 'nonprintable catalog item'
@@ -114,7 +118,7 @@ class SetNotFound(ValueError):
     pass
 
 
-def inventory(paths, requested, status):
+def inventory(paths, requested, status, *, include_minifigures=False, include_projectiles=True):
     status('Finding the set and its latest inventory')
     sets = {row['set_num'].upper(): row for row in csv_rows(paths['sets'])}
     target = sets.get(requested)
@@ -146,9 +150,18 @@ def inventory(paths, requested, status):
             visit(row['set_num'], quantity * int(row['quantity']), (*ancestry, set_number))
 
     visit(number, 1, ())
-    status('Reading required quantities and excluding minifigures')
-    minifigures = sum(counts[row['inventory_id']] * int(row['quantity'])
-                     for row in csv_rows(paths['inventory_minifigs']) if row['inventory_id'] in counts)
+    status('Reading required quantities and applying part filters')
+    figures = Counter()
+    for row in csv_rows(paths['inventory_minifigs']):
+        if row['inventory_id'] in counts:
+            figures[row['fig_num']] += counts[row['inventory_id']] * int(row['quantity'])
+    missing_figures = []
+    if include_minifigures:
+        for figure, quantity in sorted(figures.items()):
+            if figure in latest:
+                counts[latest[figure][1]] += quantity
+            else:
+                missing_figures.append({'figure_id': figure, 'quantity': quantity})
     quantities = Counter()
     for row in csv_rows(paths['inventory_parts']):
         multiplier = counts.get(row['inventory_id'])
@@ -165,7 +178,8 @@ def inventory(paths, requested, status):
         definition = parts.get(part, {})
         name = definition.get('name', part)
         category = categories.get(definition.get('part_cat_id'), '')
-        reason = classify(part, name, category, definition.get('part_material', ''))
+        reason = classify(part, name, category, definition.get('part_material', ''),
+                          include_minifigures=include_minifigures, include_projectiles=include_projectiles)
         if not definition or not category:
             reason = 'catalog metadata missing; minifigure status cannot be verified'
         color = colors.get(color_id, {})
@@ -177,7 +191,9 @@ def inventory(paths, requested, status):
         else:
             rows.append(record)
     metadata = dict(set_number=number, set_name=target['name'], image=target.get('img_url', ''),
-                    catalog_piece_count=int(target['num_parts']), excluded_minifigure_assemblies=minifigures,
+                    catalog_piece_count=int(target['num_parts']),
+                    excluded_minifigure_assemblies=0 if include_minifigures else figures.total(),
+                    missing_minifigure_inventories=missing_figures,
                     required_quantity=sum(row['quantity_required'] for row in rows),
                     unique_parts=len({row['part_number'] for row in rows}),
                     inventory_version=latest[number][0], inventory_source='Rebrickable')

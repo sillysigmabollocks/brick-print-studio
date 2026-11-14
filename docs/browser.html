@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Brick Print Studio</title>
 <link rel="stylesheet" href="./studio.css?v=remember-token-1">
-<script src="./browser.js?v=browser-3" defer></script>
+<script src="./browser.js?v=browser-4" defer></script>
 </head>
 <body>
 <header class="top"><div class="wrap top-inner">
@@ -17,7 +17,7 @@
 <main class="wrap">
   <section class="intro">
     <h1>LEGO set to 3MF</h1>
-    <p>Generate print plates grouped by LEGO color, with every available copy already placed. Minifigures and dedicated figure parts are excluded.</p>
+    <p>Generate print plates with every available copy already placed.</p>
   </section>
   <div class="panels">
     <section class="panel">
@@ -26,8 +26,12 @@
         <label for="set">Set number or link</label>
         <input id="set" type="text" placeholder="75328-1 or a set link" required maxlength="500" spellcheck="false" aria-describedby="set-help">
         <p id="set-help" class="hint">Links from LEGO, BrickLink, Rebrickable, and Brickset are supported.</p>
-        <details>
+        <details open>
           <summary>Printing options</summary>
+          <label class="check"><input id="group-by-color" type="checkbox" checked> Group plates by LEGO color</label>
+          <p class="hint">Turn this off to mix colors and fill each plate based on available bed space.</p>
+          <label class="check"><input id="include-minifigures" type="checkbox"> Include minifigures</label>
+          <label class="check"><input id="include-projectiles" type="checkbox"> Include projectiles (spring-shooter bolts, darts and discs)</label>
           <label class="limit" for="limit">Maximum copies per plate <input id="limit" type="number" min="1" max="100" value="30" required></label>
           <label class="check"><input id="calibration" type="checkbox"> Include the fit test</label>
         </details>

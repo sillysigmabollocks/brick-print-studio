@@ -42,6 +42,7 @@ jobs:
           python -m pip download --no-deps --only-binary=:all: --dest "$asset_dir" \
             'trimesh==5.2.1' 'networkx==3.4.2'
           python -m zipfile -c "$asset_dir/engine.zip" brickprint
+          cp "$asset_dir/engine.zip" "$asset_dir/engine-v2.zip"
           printf '%s\n' 'Catalog data from Rebrickable (https://rebrickable.com/downloads/).' \
             'Model data from the official LDraw Parts Library (https://library.ldraw.org/updates).' \
             'LDraw attribution and license files are in its reconstructed archive.' > "$asset_dir/README.txt"

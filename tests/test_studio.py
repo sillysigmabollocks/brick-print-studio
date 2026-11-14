@@ -86,6 +86,41 @@ def test_inventory_and_minifigure_filter(roots):
         inventory(catalog_paths(roots / 'catalog', print), 'NOEXIST', print)
 
 
+def test_print_filters_and_mixed_plate_quantities(roots):
+    paths = catalog_paths(roots / 'catalog', print, no_network)
+    for table, row in (
+        ('inventory_parts', '2,bolt,2,4,False\n2,launcher,1,1,False\n'),
+        ('parts', 'bolt,"Projectile, Spring Shooter Bolt",1,Plastic\n'
+                  'launcher,"Launcher, Spring Shooter",1,Plastic\n'),
+    ):
+        with gzip.open(paths[table], 'at', encoding='utf-8') as file:
+            file.write(row)
+    meta, rows, excluded = inventory(paths, '60000-1', print, include_minifigures=True,
+                                     include_projectiles=False)
+    counts = {(row['part_number'], row['color_id']): row['quantity_required'] for row in rows}
+    assert counts['head', '1'] == 4
+    assert counts['3005', '1'] == 28
+    assert counts['launcher', '1'] == 1
+    assert ('bolt', '2') not in counts
+    assert any(row['part_number'] == 'bolt' and row['reason'] == 'projectiles disabled' for row in excluded)
+    assert meta['excluded_minifigure_assemblies'] == 0
+    assert not meta['missing_minifigure_inventories']
+
+    studio = Studio(roots)
+    job = studio.enqueue('60000-1', dict(OPTIONS, group_by_color=False, max_per_plate=None,
+                                         include_minifigures=True, include_projectiles=False))
+    studio.run(job)
+    snapshot = studio.snapshot(job)
+    assert snapshot['state'] == 'complete'
+    assert snapshot['plate_count'] == 1
+    folder = studio.folder(job, snapshot['metadata']) / 'Printing_Batches'
+    manifest = json.loads((folder / 'batch_layouts.json').read_text())
+    plate, = manifest['plates']
+    assert plate['color'] == 'Mixed'
+    assert {item['color_id'] for item in plate['objects']} == {'1', '2'}
+    assert manifest['quantity_summary']['required'] == sum(counts.values())
+
+
 def test_exact_mapping_ambiguous_and_conversion(roots):
     ldraw = LDraw(roots / 'catalog' / 'complete.zip')
     try:

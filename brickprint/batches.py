@@ -46,14 +46,14 @@ def find_position(free, width, depth, gap):
     return min(fits, default=None)
 
 
-def placements(rows, results, profile, limit, *, include_review=False):
+def placements(rows, results, profile, limit, *, include_review=False, group_by_color=True):
     width, depth, height = profile['build_volume_mm']
     gap, margin = profile['spacing_mm'], profile['bed_margin_mm']
     x0, y0, x1, y1 = profile['excluded_rectangle_mm']
     bed = [(margin, margin, width - margin + gap, depth - margin + gap)]
     # Footprints use positive-X/Y padding. The excluded zone is padded the same way.
     empty = subtract_rectangle(bed, (x0, y0, x1 + gap, y1 + gap))
-    by_color, skipped = defaultdict(list), []
+    groups, skipped = defaultdict(list), []
     for row in rows:
         part = row['part_number']
         result = results[part]
@@ -66,9 +66,10 @@ def placements(rows, results, profile, limit, *, include_review=False):
         if h > height or position is None:
             skipped.append(dict(row, reason='Part exceeds the usable build area in its exported orientation'))
             continue
-        by_color[row['color_id'], row['color']].append((row, w, d, h, validation, position))
+        group = (row['color_id'], row['color']) if group_by_color else (None, 'Mixed')
+        groups[group].append((row, w, d, h, validation, position))
     plates = []
-    for (color_id, color), designs in sorted(by_color.items()):
+    for (color_id, color), designs in sorted(groups.items()):
         open_plates = []
         for row, w, d, h, validation, empty_position in sorted(
                 designs, key=lambda data: (-max(data[1:3]), -data[1] * data[2], data[0]['part_number'])):
@@ -83,7 +84,8 @@ def placements(rows, results, profile, limit, *, include_review=False):
                     index, free, fit = len(open_plates), empty, empty_position
                     open_plates.append((plate, free))
                 _, _, y, x, placed_w, placed_d, rotation = fit
-                plate['objects'].append(dict(part_number=row['part_number'], validation_status=validation,
+                plate['objects'].append(dict(part_number=row['part_number'], color_id=row['color_id'],
+                                             validation_status=validation,
                                              x=x, y=y, width=placed_w, depth=placed_d, height=h,
                                              rotation_degrees=rotation))
                 if validation == 'review':
@@ -143,8 +145,8 @@ def save_plate_stl(path, plate, meshes):
     trimesh.util.concatenate(placed).export(path, file_type='stl')
 
 
-def export_batches(folder, rows, results, profile, limit, status):
-    plates, skipped = placements(rows, results, profile, limit, include_review=True)
+def export_batches(folder, rows, results, profile, limit, status, *, group_by_color=True):
+    plates, skipped = placements(rows, results, profile, limit, include_review=True, group_by_color=group_by_color)
 
     @lru_cache(maxsize=32)
     def load_mesh(source):
@@ -168,10 +170,11 @@ def export_batches(folder, rows, results, profile, limit, status):
         destination.parent.mkdir(parents=True, exist_ok=True)
         save_plate_stl(destination, plate, meshes)
     summary = audit_quantities(folder, rows, plates, skipped)
-    manifest = {'quantity_summary': summary, 'profile': profile, 'max_parts_per_plate': limit, 'plates': plates, 'skipped': skipped}
+    manifest = {'quantity_summary': summary, 'profile': profile, 'max_parts_per_plate': limit,
+                'group_by_color': group_by_color, 'plates': plates, 'skipped': skipped}
     (folder / 'batch_layouts.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     (folder / 'START_HERE.txt').write_text(
-        'Open one Plate_*.3mf per empty slicer plate. Each file contains one LEGO color with all copies for that plate.\n'
+        'Open one Plate_*.3mf per empty slicer plate. Each file contains all copies assigned to that plate.\n'
         f"Set inventory: {summary['required']} required copies. "
         f"{summary['checked']} with checked meshes, {summary['review']} with meshes to review, "
         f"{summary['missing']} unplaced.\n"
@@ -192,7 +195,7 @@ def audit_quantities(folder, rows, plates, skipped):
         required[key(row)] += row['quantity_required']
     for plate in plates:
         for item in plate['objects']:
-            packed[item['validation_status']][item['part_number'], plate['color_id']] += 1
+            packed[item['validation_status']][key(item)] += 1
     missing = Counter()
     reasons = defaultdict(set)
     for row in skipped:

@@ -8,10 +8,11 @@ let engine;
 
 async function prepare() {
   report("Checking the latest published catalog…");
-  const response = await fetch(catalog + "manifest.json", {cache: "no-cache"});
+  const response = await fetch(catalog + "manifest.json?engine=2", {cache: "no-cache"});
   if (response.status === 404) throw new Error("The first catalog publish is still pending. Check the repository’s browser assets workflow and try again.");
   if (!response.ok) throw new Error("Could not load the catalog index (HTTP " + response.status + ").");
   const manifest = await response.json();
+  if (!manifest["engine-v2.zip"]) throw new Error("The updated print engine is still publishing. Try Generate again in a few minutes.");
   const cache = await self.caches?.open(cacheName).catch(() => null);
   const used = new Set();
   async function file(name) {
@@ -48,7 +49,7 @@ async function prepare() {
       "import sysconfig; sysconfig.get_path('purelib')"
     )});
   }
-  py.unpackArchive(await file("engine.zip"), "zip", {extractDir: "/"});
+  py.unpackArchive(await file("engine-v2.zip"), "zip", {extractDir: "/"});
   const directory = "/print-data/catalog/";
   py.FS.mkdirTree(directory);
   for (const name of ["sets", "inventories", "inventory_parts", "inventory_sets",
@@ -78,9 +79,14 @@ self.onmessage = async ({data}) => {
     engine.globals.set("set_id", data.set);
     engine.globals.set("plate_limit", data.limit);
     engine.globals.set("fit_test", data.calibration);
+    engine.globals.set("group_by_color", data.groupByColor);
+    engine.globals.set("include_minifigures", data.includeMinifigures);
+    engine.globals.set("include_projectiles", data.includeProjectiles);
     engine.globals.set("report", report);
     const result = JSON.parse(engine.runPython(
-      "import sys; sys.path.insert(0, chr(47)); from brickprint.browser import generate; generate(set_id, plate_limit, fit_test, report)"
+      "import sys; sys.path.insert(0, chr(47)); from brickprint.browser import generate; " +
+      "generate(set_id, plate_limit, fit_test, report, group_by_color=group_by_color, " +
+      "include_minifigures=include_minifigures, include_projectiles=include_projectiles)"
     ));
     const bytes = engine.FS.readFile("/print-export.zip");
     engine.FS.unlink("/print-export.zip");

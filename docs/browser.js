@@ -6,8 +6,16 @@ const generate = form.querySelector("button[type=submit]");
 const download = byId("download");
 const status = byId("status");
 const error = byId("error");
+const groupByColor = byId("group-by-color");
+const limit = byId("limit");
 let worker;
 let objectUrl;
+
+function syncPlateLimit() {
+  limit.disabled = !groupByColor.checked;
+}
+groupByColor.addEventListener("change", syncPlateLimit);
+syncPlateLimit();
 
 function setNumber(value) {
   const cleaned = value.trim();
@@ -40,7 +48,7 @@ function showError(message = "") {
 }
 
 function startWorker() {
-  const instance = new Worker("./worker.js?v=browser-3", {type: "module"});
+  const instance = new Worker("./worker.js?v=browser-4", {type: "module"});
   instance.onmessage = ({data}) => {
     if (data.type === "progress") {
       status.textContent = data.message;
@@ -56,6 +64,9 @@ function startWorker() {
     }
     const summary = data.result;
     status.textContent = `${summary.plates} plates · ${summary.checked + summary.review} of ${summary.required} copies placed · ${summary.missing} unplaced.`;
+    if (summary.missing_figure_inventories) {
+      status.textContent += ` Missing catalog inventories for ${summary.missing_figure_inventories} minifigure(s).`;
+    }
     objectUrl = URL.createObjectURL(new Blob([data.bytes], {type: "application/zip"}));
     download.href = objectUrl;
     download.download = summary.filename;
@@ -83,7 +94,9 @@ form.addEventListener("submit", event => {
     download.hidden = true;
     generate.disabled = true;
     status.textContent = `Preparing set ${set}…`;
-    worker.postMessage({set, limit: Number(byId("limit").value), calibration: byId("calibration").checked});
+    worker.postMessage({set, limit: Number(limit.value), calibration: byId("calibration").checked,
+      groupByColor: groupByColor.checked, includeMinifigures: byId("include-minifigures").checked,
+      includeProjectiles: byId("include-projectiles").checked});
   } catch (problem) {
     generate.disabled = false;
     showError(problem.message);

@@ -259,13 +259,15 @@ class Studio:
 
         library = None
         try:
+            options = job['options']
             metadata, rows, excluded = job['metadata'], job['inventory'], job['excluded']
             if metadata is None:
                 paths = catalog_paths(self.catalog, status, self.downloader)
-                metadata, rows, excluded = inventory(paths, job['request'], status)
+                metadata, rows, excluded = inventory(
+                    paths, job['request'], status, include_minifigures=options.get('include_minifigures', False),
+                    include_projectiles=options.get('include_projectiles', True))
                 self.store.update(job_id, metadata=dump(metadata), inventory=dump(rows), excluded=dump(excluded))
             config = resolve_config(self.root)
-            options = job['options']
             archive_path = self.catalog / 'complete.zip'
             designs = {row['part_number']: row['part_name'] for row in rows}
             calibration_parts = ('3001', '3023') if options['calibration'] else ()
@@ -413,7 +415,8 @@ class Studio:
         count = 0
         if options['batches']:
             count = export_batches(stage / 'Printing_Batches', rich_rows, results, printer,
-                                   options['max_per_plate'], status)
+                                   options['max_per_plate'], status,
+                                   group_by_color=options.get('group_by_color', True))
         if library:
             status('Writing model attribution and license files')
             for filename, contents in library.license_files().items():
@@ -446,7 +449,7 @@ class Studio:
             'Inventory data from Rebrickable. Model provenance and licenses are in Reports.\n'
             'Import STL at 100% as millimeters. Files in the STL folder contain individual designs.\n'
             'When print plates are enabled, start with Printing_Batches/START_HERE.txt.\n'
-            'Open each 3MF independently. It contains one color with multiple designs with every copy assigned to that plate.\n'
+            'Open each 3MF independently. It contains every copy assigned to that plate.\n'
             'Use the matching STL_Fallback plate if the slicer fails to load all 3MF copies.\n'
             'Review supports, wall thickness, orientation, dimensions and toolpaths in your slicer.\n'
             'Files ending in _Review include flagged meshes. Inspect and repair those before printing.\n'
