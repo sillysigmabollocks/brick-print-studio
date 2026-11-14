@@ -1,0 +1,29 @@
+# Run Brick Print Studio on GitHub
+
+The GitHub Pages site links to the generator. GitHub Actions runs the Python code and makes the print ZIP available in the workflow summary. Once set up, all printing jobs can be started from a browser.
+
+## One-time setup
+
+Create a new GitHub repository for Brick Print Studio and commit the contents of this folder at its root. Include the hidden `.github` directory and its workflow. The Pages route below uses a public repository on GitHub Free. Choose visibility yourself before pushing. Keep local work, print ZIPs, source catalogs, and other data out of the repository.
+
+If you use Git and the GitHub CLI, extract this package and run these commands from the `lego-print-studio` folder on your computer. The `gh auth` commands use GitHub’s browser sign-in.
+
+```sh
+gh auth login --web --git-protocol https
+gh auth refresh -h github.com -s workflow
+git init -b main
+git add .
+git commit -m "Add Brick Print Studio and GitHub generator"
+gh repo create brick-print-studio --public --source=. --remote=origin --push
+```
+
+Then open the repository’s **Settings → Pages**. Select **Deploy from a branch**, select **main** and **/docs**, and click **Save**. Bookmark the URL shown in Pages once deployment succeeds. You can also run the generator through **Actions → Generate Print ZIP** as soon as the workflow is on the default branch.
+
+## Generate and print
+
+1. Open the webpage and select **Open generator on GitHub**.
+2. Select **Run workflow**, fill in the set number, and start the run.
+3. Open the run summary and download the Print ZIP. Downloads are available for seven days.
+4. In the ZIP, open the 3MF files under `Printing_Batches`. Each file contains its assigned color and quantities. Review flagged meshes and the unplaced-quantity report before printing.
+
+The GitHub-hosted run uses the repository’s current code and downloads its catalog inputs during the run. The original local launcher is included.

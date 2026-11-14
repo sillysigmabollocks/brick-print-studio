@@ -1,0 +1,14 @@
+{
+  "printer": "Elegoo Centauri Carbon 2",
+  "build_volume_mm": [256, 256, 256],
+  "excluded_rectangle_mm": [246, 0, 256, 20],
+  "bed_margin_mm": 5,
+  "spacing_mm": 5,
+  "nozzle_mm": 0.4,
+  "material": "PLA",
+  "layer_height_mm": 0.12,
+  "process": "0.12mm Fine @Elegoo CC2 0.4 nozzle",
+  "supports": "Critical regions only when needed. Confirm per part in the slicer.",
+  "other_settings": "Use the matching official Elegoo printer, filament and process defaults.",
+  "profile_source": "https://github.com/elegooofficial/ElegooSlicer/tree/main/resources/profiles/Elegoo"
+}

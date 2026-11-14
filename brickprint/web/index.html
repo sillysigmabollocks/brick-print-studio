@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Brick Print Studio</title>
+<link rel="stylesheet" href="/static/studio.css">
+<script defer src="/static/studio.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-inner"><a class="brand" href="/"><span class="mark" aria-hidden="true">⠿</span> Brick Print Studio</a><span class="machine" id="machine">Elegoo Centauri Carbon 2</span></div>
+</header>
+<main class="wrap">
+  <section class="intro">
+    <h1>LEGO set to STL</h1>
+    <p>Enter a set number to export available parts and their required quantities. Minifigures and their dedicated parts are excluded.</p>
+  </section>
+  <div class="panels">
+    <section class="panel form-panel" aria-labelledby="generate-heading">
+      <h2 id="generate-heading">Generate a set</h2>
+      <form id="generate">
+        <label for="set-number">LEGO set number</label>
+        <div class="form-row"><input id="set-number" name="set-number" placeholder="75328-1" maxlength="25" required autocomplete="off" spellcheck="false"><button class="primary" type="submit">Generate Printable Set</button></div>
+        <details>
+          <summary>Printing options</summary>
+          <div class="options">
+            <label class="check"><input id="batches" type="checkbox" checked> Generate 3MF plates grouped by color</label>
+            <label class="limit" for="max-per-plate">Maximum parts per plate <input id="max-per-plate" type="number" min="1" max="100" value="30"></label>
+            <label class="check"><input id="calibration" type="checkbox"> Include a stud-and-tube fit test</label>
+            <p id="profile" class="hint"></p>
+          </div>
+        </details>
+      </form>
+      <p class="hint">Import a whole plate into your slicer with the copies already placed.</p>
+      <p class="hint">The first job downloads the catalogs and model library. Later jobs reuse the local files.</p>
+      <p id="form-error" role="alert" class="error" hidden></p>
+    </section>
+    <aside class="panel history" aria-labelledby="history-heading">
+      <h2 id="history-heading">Recent jobs</h2><div id="history-list"><p class="hint">No jobs yet.</p></div>
+    </aside>
+  </div>
+  <section id="results" class="panel results" aria-labelledby="set-name" hidden>
+    <div class="set-header"><img id="set-image" alt="" width="102" height="78" hidden><div><span id="set-id" class="set-id"></span><h2 id="set-name">Preparing set</h2></div></div>
+    <div class="metrics" id="metrics" hidden>
+      <div><strong id="catalog-count"></strong><span>Catalog pieces</span></div>
+      <div><strong id="required-count"></strong><span>Pieces to source</span></div>
+      <div><strong id="design-count"></strong><span>Unique designs</span></div>
+      <div><strong id="minifig-count"></strong><span>Minifigures excluded</span></div>
+    </div>
+    <div class="progress-heading"><span id="progress-text" aria-live="polite"></span><span id="progress-count"></span></div>
+    <progress id="progress" max="100" aria-label="Set processing progress"></progress>
+    <p id="status-detail" class="hint"></p>
+    <div class="download-row">
+      <a id="download" class="primary" hidden>Download Print ZIP</a>
+      <button id="resume" type="button" hidden>Resume job</button>
+      <span id="plate-count"></span>
+    </div>
+    <p class="hint" id="plate-help" hidden></p>
+    <div id="part-section" hidden>
+      <div class="table-header"><h3>Parts</h3><input type="search" id="filter" aria-label="Filter parts" placeholder="Filter by part, color or status"></div>
+      <div class="scroll"><table><thead><tr><th scope="col">Part</th><th scope="col">Color</th><th scope="col">Qty</th><th scope="col">Status</th></tr></thead><tbody id="parts"></tbody></table></div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

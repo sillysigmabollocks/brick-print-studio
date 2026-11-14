@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Brick Print Studio</title>
+<link rel="stylesheet" href="./studio.css">
+<script src="./github.js" defer></script>
+</head>
+<body>
+<header class="top"><div class="wrap top-inner">
+  <strong>Brick Print Studio</strong>
+  <span class="machine">Elegoo Centauri Carbon 2</span>
+</div></header>
+<main class="wrap">
+  <section class="intro">
+    <h1>LEGO set to 3MF</h1>
+    <p>Generate print plates grouped by LEGO color, with the required copies already placed. Minifigures and their dedicated parts are excluded.</p>
+  </section>
+  <div class="panels">
+    <section class="panel">
+      <h2>Generate a set on GitHub</h2>
+      <p>Open the generator, select <strong>Run workflow</strong>, and enter your LEGO set number. GitHub will build the plates and reports.</p>
+      <p><a id="generate" class="primary" href="https://github.com/" hidden>Open generator on GitHub</a></p>
+      <p id="setup" class="hint">Publish this page from the repository’s <code>docs</code> folder on GitHub Pages.</p>
+    </section>
+    <section class="panel">
+      <h2>Download your print plates</h2>
+      <p>Open the newest run and select <strong>Download the Print ZIP</strong> in its summary. In the ZIP, open the 3MF files under <code>Printing_Batches</code> in your slicer.</p>
+      <p class="hint">GitHub sign-in and repository write access are required to run the generator.</p>
+    </section>
+  </div>
+</main>
+</body>
+</html>
