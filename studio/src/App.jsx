@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { Component, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowDownRight, ArrowUpRight, CircleHelp, Menu, Moon, RotateCcw, Sun, X } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -42,19 +42,25 @@ function Logo() {
 }
 
 function ThemeButton() {
+  const preferenceKey = 'brick-print-theme-preference';
   const [dark, setDark] = useState(() => {
-    try { return localStorage.getItem('brick-print-theme') === 'dark'; }
-    catch { return false; }
+    try { return localStorage.getItem(preferenceKey) !== 'light'; }
+    catch { return true; }
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    document.querySelector('meta[name="theme-color"]').content = dark ? '#181819' : '#f5f5f7';
-    try { localStorage.setItem('brick-print-theme', dark ? 'dark' : 'light'); } catch { /* Storage is optional. */ }
+    document.querySelector('meta[name="theme-color"]').content = dark ? '#000000' : '#f5f5f7';
   }, [dark]);
 
+  function toggleTheme() {
+    const nextDark = !dark;
+    setDark(nextDark);
+    try { localStorage.setItem(preferenceKey, nextDark ? 'dark' : 'light'); } catch { /* Storage is optional. */ }
+  }
+
   return (
-    <button className="theme-button" type="button" aria-label="Dark mode" aria-pressed={dark} onClick={() => setDark(!dark)}>
+    <button className="theme-button" type="button" aria-label="Dark mode" aria-pressed={dark} onClick={toggleTheme}>
       <Sun size={15} aria-hidden="true" className={!dark ? 'selected' : ''} />
       <Moon size={15} aria-hidden="true" className={dark ? 'selected' : ''} />
     </button>
