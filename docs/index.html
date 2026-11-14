@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.github.com https://*.blob.core.windows.net https://*.actions.githubusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Brick Print Studio</title>
 <link rel="stylesheet" href="./studio.css">
 <script src="./github.js" defer></script>
@@ -15,19 +17,39 @@
 <main class="wrap">
   <section class="intro">
     <h1>LEGO set to 3MF</h1>
-    <p>Generate print plates grouped by LEGO color, with the required copies already placed. Minifigures and their dedicated parts are excluded.</p>
+    <p>Generate print plates grouped by LEGO color, with every available copy already placed. Minifigures and dedicated figure parts are excluded.</p>
   </section>
   <div class="panels">
     <section class="panel">
-      <h2>Generate a set on GitHub</h2>
-      <p>Open the generator, select <strong>Run workflow</strong>, and enter your LEGO set number. GitHub will build the plates and reports.</p>
-      <p><a id="generate" class="primary" href="https://github.com/" hidden>Open generator on GitHub</a></p>
-      <p id="setup" class="hint">Publish this page from the repository’s <code>docs</code> folder on GitHub Pages.</p>
+      <h2>Generate a set</h2>
+      <form id="generate" autocomplete="off">
+        <label for="set">Set number or link</label>
+        <input id="set" type="text" placeholder="75328-1 or a set link" required maxlength="500" spellcheck="false" aria-describedby="set-help">
+        <p id="set-help" class="hint">Links from LEGO, BrickLink, Rebrickable, and Brickset are supported.</p>
+        <details>
+          <summary>Printing options</summary>
+          <label class="limit" for="limit">Maximum copies per plate <input id="limit" type="number" min="1" max="100" value="30" required></label>
+          <label class="check"><input id="calibration" type="checkbox"> Include the fit test</label>
+        </details>
+        <details id="connection" open>
+          <summary id="connection-title">Connect GitHub for this tab</summary>
+          <p class="hint">Create a <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">fine-grained GitHub token</a>. Select only <strong>brick-print-studio</strong> and give <strong>Actions</strong> <strong>Read and write</strong> access. Use your GitHub account as the resource owner.</p>
+          <label for="token">GitHub token</label>
+          <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" aria-describedby="token-help">
+          <p id="token-help" class="hint">The token is sent directly to GitHub and kept in memory until you close or reload this tab.</p>
+          <button id="disconnect" type="button" hidden>Disconnect</button>
+        </details>
+        <button class="primary start-job" type="submit">Generate Print ZIP</button>
+      </form>
     </section>
     <section class="panel">
-      <h2>Download your print plates</h2>
-      <p>Open the newest run and select <strong>Download the Print ZIP</strong> in its summary. In the ZIP, open the 3MF files under <code>Printing_Batches</code> in your slicer.</p>
-      <p class="hint">GitHub sign-in and repository write access are required to run the generator.</p>
+      <h2>Print ZIP</h2>
+      <p id="status" role="status" aria-live="polite">Enter a LEGO set to get started.</p>
+      <p id="error" class="error" role="alert" hidden></p>
+      <p><button id="download" class="primary" type="button" hidden>Download Print ZIP</button></p>
+      <p><a id="artifact-link" target="_blank" rel="noopener noreferrer" hidden>Download via GitHub</a></p>
+      <p id="print-help" class="hint" hidden>Open the 3MF files under <code>Printing_Batches</code> in your slicer. Each plate includes its assigned copies.</p>
+      <p><a id="run-link" target="_blank" rel="noopener noreferrer" hidden>View run details</a></p>
     </section>
   </div>
 </main>
