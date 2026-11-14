@@ -137,7 +137,7 @@ export default function Generator() {
           {error && <p className="error" role="alert">{error}</p>}
           {download && <a className="primary" href={download.href} download={download.filename}><ArrowDownToLine size={16} aria-hidden="true" /> Download Print ZIP</a>}
           <p className="hint output-note">Open the 3MF files in <code>Printing_Batches</code> in your slicer. Check the included reports for missing models and meshes that need review.</p>
-          <a className="text-link" href="./">GitHub Actions generator <ArrowRight size={14} aria-hidden="true" /></a>
+          <a className="text-link" href="./actions.html">GitHub Actions generator <ArrowRight size={14} aria-hidden="true" /></a>
         </section>
       </div>
     </section>

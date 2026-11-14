@@ -18,3 +18,4 @@ with ZipFile('docs/showcase/stand-engine-1.zip', 'w', compression=ZIP_DEFLATED) 
             archive.writestr(ZipInfo(path.as_posix()), path.read_bytes(), ZIP_DEFLATED)
 `], { cwd: fileURLToPath(new URL('../../', import.meta.url)) });
 await cp(new URL('browser.html', source), new URL('browser.html', pages));
+await cp(new URL('browser.html', source), new URL('index.html', pages));

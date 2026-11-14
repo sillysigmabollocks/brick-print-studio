@@ -164,7 +164,7 @@ export default function App() {
   return (
     <div className="site-shell" ref={page}>
       <header className="site-header flex items-center justify-between">
-        <a className="brand flex items-center" href="./browser.html" aria-label="Brick Print Studio home">
+        <a className="brand flex items-center" href="./" aria-label="Brick Print Studio home">
           <Logo />
           <span>Brick Print<span className="brand-accent">.</span><br /><small>STUDIO</small></span>
         </a>
