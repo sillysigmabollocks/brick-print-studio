@@ -22,7 +22,7 @@ Then open the repository’s **Settings → Pages**. Select **Deploy from a bran
 ## Generate and print
 
 1. Open the webpage and paste a LEGO set number or a link from LEGO, BrickLink, Rebrickable, or Brickset.
-2. Under **Connect GitHub**, paste a fine-grained personal access token scoped only to `brick-print-studio`, with **Actions → Read and write**. The page sends it directly to GitHub and retains it only in memory for the current tab.
+2. Under **Connect GitHub**, paste a fine-grained personal access token scoped only to `brick-print-studio`, with **Actions → Read and write**. The page sends it directly to GitHub. Select **Remember token on this browser** before generating to save it after GitHub accepts the request. The saved token is accessible to pages on the same GitHub Pages origin. Use **Disconnect and forget token** to clear it from this browser.
 3. Select **Generate Print ZIP**. Once the run completes, download the ZIP on the same page. If the browser blocks the direct download, use **Download via GitHub**. Artifacts are retained for seven days.
 4. Open the 3MF files under `Printing_Batches` in your slicer. Review flagged meshes and the unplaced-quantity report.
 

@@ -11,6 +11,6 @@ details{margin-top:15px}summary{cursor:pointer;font-weight:650}.options{padding:
 @media(max-width:680px){.panels{grid-template-columns:1fr}.intro{padding-top:30px}.panel{padding:15px}.metrics{grid-template-columns:1fr 1fr}.form-row{flex-wrap:wrap}.form-row input{flex-basis:100%}.machine{font-size:.72rem}.table-header input{width:65%}.top-inner{min-height:57px}}
 
 #generate > input, #connection > input { display: block; width: 100%; margin-top: 6px; }
-#connection > label { display: block; margin-top: 12px; }
+#connection > label:not(.check) { display: block; margin-top: 12px; }
 #connection > button { margin-top: 10px; }
 .start-job { margin-top: 18px; }

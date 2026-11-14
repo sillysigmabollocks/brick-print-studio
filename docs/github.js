@@ -9,7 +9,11 @@ const download = byId("download");
 const artifactLink = byId("artifact-link");
 const runLink = byId("run-link");
 
+const remember = byId("remember-token");
+const storageKey = "brick-print-studio:github-actions-token";
+const validToken = value => /^github_pat_[A-Za-z0-9_]+$/.test(value);
 let token = "";
+let savedToken = "";
 let artifact = null;
 let busy = false;
 
@@ -44,10 +48,58 @@ function showError(message = "") {
 }
 
 function connectionState(connected) {
-  byId("connection-title").textContent = connected ? "GitHub connected for this tab" : "Connect GitHub for this tab";
+  const title = savedToken && savedToken === token ? "GitHub token remembered"
+    : connected ? "GitHub connected for this tab" : "Connect GitHub for this tab";
+  byId("connection-title").textContent = title;
   byId("disconnect").hidden = !connected;
   if (!connected) byId("connection").open = true;
 }
+
+function storageNote(message = "") {
+  byId("storage-note").textContent = message;
+  byId("storage-note").hidden = !message;
+}
+
+function forgetSavedToken() {
+  try {
+    localStorage.removeItem(storageKey);
+    savedToken = "";
+    storageNote();
+  } catch {
+    storageNote("This browser blocked removal. Clear this site's data to remove any saved token.");
+  }
+}
+
+function saveToken() {
+  try {
+    localStorage.setItem(storageKey, token);
+    savedToken = token;
+    storageNote();
+  } catch {
+    storageNote("This browser blocked saving. The token is available for this tab.");
+  }
+}
+
+try {
+  savedToken = localStorage.getItem(storageKey) || "";
+  if (validToken(savedToken)) {
+    token = savedToken;
+    remember.checked = true;
+    connectionState(true);
+    byId("connection").open = false;
+  } else if (savedToken) {
+    forgetSavedToken();
+  }
+} catch {
+  storageNote("This browser blocked access to saved site data.");
+}
+
+remember.addEventListener("change", () => {
+  if (!remember.checked) {
+    forgetSavedToken();
+    connectionState(Boolean(token));
+  }
+});
 
 async function request(path, options = {}, artifactDownload = false) {
   const headers = {
@@ -60,6 +112,7 @@ async function request(path, options = {}, artifactDownload = false) {
     ...options, headers, credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer",
   });
   if (response.status === 401) {
+    if (savedToken && savedToken === token) forgetSavedToken();
     token = "";
     connectionState(false);
     throw new Error("GitHub rejected the token. Enter a new fine-grained token.");
@@ -110,7 +163,7 @@ form.addEventListener("submit", async event => {
   const entered = input.value.trim();
   input.value = "";
   if (entered) {
-    if (!/^github_pat_[A-Za-z0-9_]+$/.test(entered)) {
+    if (!validToken(entered)) {
       showError("Use a fine-grained token beginning with github_pat_.");
       return;
     }
@@ -138,14 +191,15 @@ form.addEventListener("submit", async event => {
         calibration: byId("calibration").checked,
       }}),
     });
+    if (remember.checked) saveToken();
+    connectionState(true);
+    if (byId("storage-note").hidden) byId("connection").open = false;
     const {workflow_run_id: runId} = dispatch.status === 204 ? {} : await dispatch.json();
     if (!Number.isSafeInteger(runId) || runId < 1) {
       runLink.href = github + "/actions/workflows/generate.yml";
       runLink.hidden = false;
       throw new Error("GitHub accepted the job without returning a run ID. Find it in the workflow runs.");
     }
-    connectionState(true);
-    byId("connection").open = false;
     await watchRun(runId);
   } catch (error) {
     byId("status").textContent = "Unable to show the print ZIP.";
@@ -160,6 +214,8 @@ form.addEventListener("submit", async event => {
 byId("disconnect").addEventListener("click", () => {
   token = "";
   input.value = "";
+  remember.checked = false;
+  forgetSavedToken();
   connectionState(false);
 });
 
