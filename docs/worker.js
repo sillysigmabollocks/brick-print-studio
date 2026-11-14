@@ -1,28 +1,34 @@
 "use strict";
 
 const runtime = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/";
-const catalog = "https://raw.githubusercontent.com/sillysigmabollocks/brick-print-studio/refs/heads/browser-assets/";
+const assets = "https://raw.githubusercontent.com/sillysigmabollocks/brick-print-studio/";
+const currentCatalog = assets + "refs/heads/browser-assets/";
+const initialCatalog = assets + "fc8eafd5b31a505645956f96b0dc5487c75c162f/";
 const cacheName = "brick-print-studio-catalog-v1";
 const report = message => self.postMessage({type: "progress", message});
 let engine;
 
 async function prepare() {
   report("Checking the latest published catalog…");
-  const response = await fetch(catalog + "manifest.json?engine=2", {cache: "no-cache"});
-  if (response.status === 404) throw new Error("The first catalog publish is still pending. Check the repository’s browser assets workflow and try again.");
-  if (!response.ok) throw new Error("Could not load the catalog index (HTTP " + response.status + ").");
-  const manifest = await response.json();
-  if (!manifest["engine-v2.zip"]) throw new Error("The updated print engine is still publishing. Try Generate again in a few minutes.");
+  let catalog = currentCatalog;
+  const response = await fetch(catalog + "manifest.json?engine=2", {cache: "no-cache"}).catch(() => null);
+  let manifest = response?.ok ? await response.json() : null;
+  if (!manifest?.["engine-v2.zip"]) {
+    catalog = initialCatalog;
+    const fallback = await fetch(catalog + "manifest.json");
+    if (!fallback.ok) throw new Error("Could not load the print catalog (HTTP " + fallback.status + ").");
+    manifest = await fallback.json();
+  }
   const cache = await self.caches?.open(cacheName).catch(() => null);
   const used = new Set();
   async function file(name) {
     const digest = manifest[name];
     if (!/^[a-f0-9]{64}$/.test(digest ?? "")) throw new Error("Catalog index is missing " + name);
-    const key = catalog + name + "?sha256=" + digest;
+    const key = currentCatalog + name + "?sha256=" + digest;
     used.add(key);
     let source = await cache?.match(key);
     if (!source) {
-      source = await fetch(key);
+      source = await fetch(catalog + name + "?sha256=" + digest);
       if (!source.ok) throw new Error("Could not download " + name + " (HTTP " + source.status + ").");
       const bytes = await source.arrayBuffer();
       const hash = await crypto.subtle.digest("SHA-256", bytes);
