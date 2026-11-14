@@ -40,7 +40,7 @@ function showError(message = "") {
 }
 
 function startWorker() {
-  const instance = new Worker("./worker.js?v=browser-1");
+  const instance = new Worker("./worker.js?v=browser-2");
   instance.onmessage = ({data}) => {
     if (data.type === "progress") {
       status.textContent = data.message;

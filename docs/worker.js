@@ -1,7 +1,7 @@
 "use strict";
 
 const runtime = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/";
-const catalog = "https://raw.githubusercontent.com/sillysigmabollocks/brick-print-studio/browser-assets/";
+const catalog = "https://raw.githubusercontent.com/sillysigmabollocks/brick-print-studio/refs/heads/browser-assets/";
 const cacheName = "brick-print-studio-catalog-v1";
 const report = message => self.postMessage({type: "progress", message});
 let engine;
