@@ -34,9 +34,15 @@ async function prepare() {
   }
 
   report("Loading the browser print engine…");
-  importScripts(runtime + "pyodide.js");
-  const py = await loadPyodide({indexURL: runtime});
-  await py.loadPackage(["numpy", "scipy", "shapely", "httpx"]);
+  let py;
+  try {
+    const {loadPyodide} = await import(runtime + "pyodide.mjs");
+    py = await loadPyodide({indexURL: runtime});
+    await py.loadPackage(["numpy", "scipy", "shapely", "httpx"]);
+  } catch (error) {
+    console.error("Could not initialize the print engine", error);
+    throw new Error("The browser could not load the print engine from jsDelivr. Try Generate again, or use the GitHub Actions generator.");
+  }
   for (const wheel of ["trimesh-5.2.1-py3-none-any.whl", "networkx-3.4.2-py3-none-any.whl"]) {
     py.unpackArchive(await file(wheel), "zip", {extractDir: py.runPython(
       "import sysconfig; sysconfig.get_path('purelib')"

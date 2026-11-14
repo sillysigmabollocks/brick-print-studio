@@ -40,7 +40,7 @@ function showError(message = "") {
 }
 
 function startWorker() {
-  const instance = new Worker("./worker.js?v=browser-2");
+  const instance = new Worker("./worker.js?v=browser-3", {type: "module"});
   instance.onmessage = ({data}) => {
     if (data.type === "progress") {
       status.textContent = data.message;
@@ -48,6 +48,8 @@ function startWorker() {
     }
     generate.disabled = false;
     if (data.type === "error") {
+      instance.terminate();
+      worker = null;
       status.textContent = "Could not generate the print ZIP.";
       showError(data.message);
       return;
