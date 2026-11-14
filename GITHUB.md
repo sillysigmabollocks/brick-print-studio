@@ -25,14 +25,14 @@ Open [the browser generator](https://sillysigmabollocks.github.io/brick-print-st
 
 ## Develop the browser page
 
-Use Node 22.12 or newer. From the repository root, install the web dependencies and start the Vite development server:
+Use Node 22.12 or newer and Python 3. From the repository root, install the web dependencies and start the Vite development server:
 
 ```sh
 npm --prefix studio ci
 npm --prefix studio run dev
 ```
 
-Open the URL Vite prints. Run `npm --prefix studio run build` after editing the React frontend. It writes the compiled browser page and its versioned assets to `docs/browser.html` and `docs/showcase/`. Commit those files with the source changes so the existing Pages deployment serves the new build. The browser page loads the same print worker and catalog as before.
+Open the URL Vite prints. Run `npm --prefix studio run build` after editing the React frontend or Python print engine. It writes the compiled page, assets, and matching print engine to `docs/browser.html` and `docs/showcase/`. Commit those files with the source changes for GitHub Pages.
 
 ## Generate with GitHub Actions
 

@@ -55,7 +55,9 @@ async function prepare() {
       "import sysconfig; sysconfig.get_path('purelib')"
     )});
   }
-  py.unpackArchive(await file("engine-v2.zip"), "zip", {extractDir: "/"});
+  const localEngine = await fetch(new URL('./showcase/stand-engine-1.zip', self.location.href));
+  if (!localEngine.ok) throw new Error('Could not load the print engine. Reload the page and try again.');
+  py.unpackArchive(await localEngine.arrayBuffer(), "zip", {extractDir: "/"});
   const directory = "/print-data/catalog/";
   py.FS.mkdirTree(directory);
   for (const name of ["sets", "inventories", "inventory_parts", "inventory_sets",
@@ -88,11 +90,14 @@ self.onmessage = async ({data}) => {
     engine.globals.set("group_by_color", data.groupByColor);
     engine.globals.set("include_minifigures", data.includeMinifigures);
     engine.globals.set("include_projectiles", data.includeProjectiles);
+    engine.globals.set("skip_display_stand", data.skipDisplayStand ?? false);
+    engine.globals.set("manual_stand", data.manualStand ?? '');
     engine.globals.set("report", report);
     const result = JSON.parse(engine.runPython(
       "import sys; sys.path.insert(0, chr(47)); from brickprint.browser import generate; " +
       "generate(set_id, plate_limit, fit_test, report, group_by_color=group_by_color, " +
-      "include_minifigures=include_minifigures, include_projectiles=include_projectiles)"
+      "include_minifigures=include_minifigures, include_projectiles=include_projectiles, " +
+      "skip_display_stand=skip_display_stand, manual_stand=manual_stand)"
     ));
     const bytes = engine.FS.readFile("/print-export.zip");
     engine.FS.unlink("/print-export.zip");

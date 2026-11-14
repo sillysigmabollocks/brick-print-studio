@@ -265,7 +265,9 @@ class Studio:
                 paths = catalog_paths(self.catalog, status, self.downloader)
                 metadata, rows, excluded = inventory(
                     paths, job['request'], status, include_minifigures=options.get('include_minifigures', False),
-                    include_projectiles=options.get('include_projectiles', True))
+                    include_projectiles=options.get('include_projectiles', True),
+                    skip_display_stand=options.get('skip_display_stand', False),
+                    manual_stand=options.get('manual_stand', ''))
                 self.store.update(job_id, metadata=dump(metadata), inventory=dump(rows), excluded=dump(excluded))
             config = resolve_config(self.root)
             archive_path = self.catalog / 'complete.zip'

@@ -30,6 +30,34 @@ FIGURE_NAME = re.compile(r'^(?:minifig(?:ure)?|mini[ -]?doll)\s+'
                          r'(?:head\b|hair\b|torso\b|legs?\b|arms?\b|hands?\b|'
                          r'hips?\b|helmet\b|cape\b|body\b)', re.I)
 PROJECTILE_NAME = re.compile(r'^(?:projectile|laser beam|blaster bolt)\b', re.I)
+# Tantive IV, LEGO instructions pp. 118–130 (steps 188–203).
+# Part IDs and colors translated from the manual's element IDs using Rebrickable.
+DISPLAY_STANDS = {'75376-1': {
+    '0': {'3008': 5, '22886': 2, '2357': 4, '3010': 4, '88292': 2, '3007': 1,
+          '30099': 2, '3023': 1, '2431': 4, '18653': 2, '6134': 2, '2654': 1,
+          '3795': 1, '93274': 1, '32802': 1, '3020': 1, '99207': 2, '15672': 2,
+          '69729': 1, '6179pr0037': 1, '49153': 2},
+    '72': {'11211': 2, '3937': 2},
+    '179': {'2412b': 2},
+}}
+
+
+def stand_quantities(number, manual):
+    if not manual.strip():
+        return {(part, color): quantity for color, parts in DISPLAY_STANDS.get(number, {}).items()
+                for part, quantity in parts.items()}
+    quantities = Counter()
+    for line in manual.splitlines():
+        if not line.strip():
+            continue
+        fields = [field.strip() for field in line.split(',')]
+        if (len(fields) != 3 or not PART_ID.fullmatch(fields[0])
+                or not re.fullmatch(r'[0-9]{1,8}', fields[1])
+                or not re.fullmatch(r'[1-9][0-9]{0,5}', fields[2])):
+            raise ValueError('Enter each stand part as part number, color ID, quantity.')
+        part, color, quantity = fields
+        quantities[part.lower(), str(int(color))] += int(quantity)
+    return quantities
 
 
 def fetch(url, destination, status, *, client=None, sleep=time.sleep):
@@ -118,7 +146,8 @@ class SetNotFound(ValueError):
     pass
 
 
-def inventory(paths, requested, status, *, include_minifigures=False, include_projectiles=True):
+def inventory(paths, requested, status, *, include_minifigures=False, include_projectiles=True,
+              skip_display_stand=False, manual_stand=''):
     status('Finding the set and its latest inventory')
     sets = {row['set_num'].upper(): row for row in csv_rows(paths['sets'])}
     target = sets.get(requested)
@@ -167,6 +196,16 @@ def inventory(paths, requested, status, *, include_minifigures=False, include_pr
         multiplier = counts.get(row['inventory_id'])
         if multiplier and row['is_spare'].strip().lower() in {'false', '0', 'f'}:
             quantities[row['part_num'], row['color_id']] += multiplier * int(row['quantity'])
+    stand = stand_quantities(number, manual_stand) if skip_display_stand else {}
+    stand_status = 'included'
+    if skip_display_stand:
+        stand_status = 'unmapped'
+        if any(quantities.get(key, 0) < quantity for key, quantity in stand.items()):
+            if manual_stand.strip():
+                raise ValueError('A stand entry exceeds the inventory quantity for its part and color. Check the IDs and quantities.')
+            stand, stand_status = {}, 'inventory_mismatch'
+        elif stand:
+            stand_status = 'skipped'
     parts_required = {part for part, _ in quantities}
     parts = {row['part_num']: row for row in csv_rows(paths['parts']) if row['part_num'] in parts_required}
     categories = {row['id']: row['name'] for row in csv_rows(paths['part_categories'])}
@@ -186,14 +225,20 @@ def inventory(paths, requested, status, *, include_minifigures=False, include_pr
         record = dict(part_number=part, part_name=name, color_id=color_id,
                       color=color.get('name', f'Unknown ({color_id})'), color_hex=color.get('rgb', ''),
                       quantity_required=quantity)
-        if reason:
-            excluded.append(dict(record, reason=reason))
-        else:
-            rows.append(record)
+        stand_count = stand.get((part, color_id), 0)
+        if stand_count:
+            excluded.append(dict(record, quantity_required=stand_count, reason='display stand'))
+        if quantity > stand_count:
+            record['quantity_required'] -= stand_count
+            if reason:
+                excluded.append(dict(record, reason=reason))
+            else:
+                rows.append(record)
     metadata = dict(set_number=number, set_name=target['name'], image=target.get('img_url', ''),
                     catalog_piece_count=int(target['num_parts']),
                     excluded_minifigure_assemblies=0 if include_minifigures else figures.total(),
                     missing_minifigure_inventories=missing_figures,
+                    display_stand_status=stand_status, display_stand_copies_skipped=sum(stand.values()),
                     required_quantity=sum(row['quantity_required'] for row in rows),
                     unique_parts=len({row['part_number'] for row in rows}),
                     inventory_version=latest[number][0], inventory_source='Rebrickable')

@@ -199,6 +199,10 @@ button:disabled, input:disabled { cursor: not-allowed; opacity: 0.55; }
 .option-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 39px; font-size: 0.83rem; }
 .option-row:first-of-type { margin-top: 8px; }
 .option-hint { margin-top: -5px; }
+.manual-stand { margin: 0 0 10px 12px; }
+.manual-stand summary { display: list-item; list-style: revert; color: var(--muted); font-weight: 500; }
+.manual-stand label { display: block; margin: 7px 0; }
+.manual-stand textarea { display: block; width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
 .option-row input[type="number"] { width: 62px; padding: 4px 6px; }
 .switch { appearance: none; flex: none; display: inline-grid; align-items: center; width: 34px; height: 19px; border-radius: 20px; border: 1px solid #85827c; background: var(--chip); cursor: pointer; }
 .switch::before { content: ""; width: 11px; height: 11px; margin-left: 3px; border-radius: 50%; background: #77746d; transition: transform 160ms; }

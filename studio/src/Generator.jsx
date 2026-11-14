@@ -15,6 +15,7 @@ const idleStatus = 'Your download will appear here after the plates are built.';
 
 export default function Generator() {
   const [groupByColor, setGroupByColor] = useState(true);
+  const [skipStand, setSkipStand] = useState(true);
   const [status, setStatus] = useState(idleStatus);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -36,7 +37,7 @@ export default function Generator() {
   }
 
   function startWorker() {
-    const instance = new Worker(new URL('./worker.js?v=browser-5', window.location.href), { type: 'module' });
+    const instance = new Worker(new URL('./worker.js?v=display-stand-1', window.location.href), { type: 'module' });
     instance.onmessage = ({ data }) => {
       if (data.type === 'progress') {
         setStatus(data.message);
@@ -46,7 +47,12 @@ export default function Generator() {
         const summary = data.result;
         const counts = `${summary.plates} plates · ${summary.checked + summary.review} of ${summary.required} copies placed · ${summary.missing} unplaced.`;
         const figures = summary.missing_figure_inventories;
-        setStatus(figures ? `${counts} Missing catalog inventories for ${figures} minifigure(s).` : counts);
+        const stand = {
+          skipped: `Skipped ${summary.display_stand_copies_skipped} display stand pieces.`,
+          unmapped: 'No verified stand list for this set. Use the manual stand list to skip pieces.',
+          inventory_mismatch: 'The verified stand list differs from this inventory. Use the manual stand list to skip pieces.',
+        }[summary.display_stand_status];
+        setStatus([counts, stand, figures && `Missing catalog inventories for ${figures} minifigure(s).`].filter(Boolean).join(' '));
         objectUrl.current = URL.createObjectURL(new Blob([data.bytes], { type: 'application/zip' }));
         setDownload({ href: objectUrl.current, filename: summary.filename });
         setBusy(false);
@@ -76,6 +82,8 @@ export default function Generator() {
         groupByColor,
         includeMinifigures: form.has('includeMinifigures'),
         includeProjectiles: form.has('includeProjectiles'),
+        skipDisplayStand: skipStand,
+        manualStand: form.get('manualStand') ?? '',
       });
     } catch (problem) {
       setBusy(false);
@@ -108,6 +116,12 @@ export default function Generator() {
             <p className="hint option-hint">Turn off to mix colors and fill the available bed space.</p>
             <Toggle name="includeMinifigures">Include minifigures</Toggle>
             <Toggle name="includeProjectiles">Include projectiles</Toggle>
+            <Toggle name="skipStand" defaultChecked onChange={event => setSkipStand(event.target.checked)}>Skip display stand</Toggle>
+            <details className="manual-stand" hidden={!skipStand}>
+              <summary>Manual stand list</summary>
+              <label className="hint" htmlFor="manual-stand">For an unlisted stand or to override the verified list, enter part number, Rebrickable color ID, and quantity on each line. Black is color 0.</label>
+              <textarea id="manual-stand" name="manualStand" rows={3} maxLength={12000} placeholder="3023,0,2" spellCheck={false} disabled={!skipStand} />
+            </details>
             <label className="option-row">
               <span>Maximum copies per plate</span>
               <input name="limit" type="number" min="1" max="100" defaultValue="30" disabled={!groupByColor} required />

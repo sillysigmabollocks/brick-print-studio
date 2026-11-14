@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 const browserPage = fileURLToPath(new URL('./browser.html', import.meta.url));
-const worker = new URL('../docs/worker.js', import.meta.url);
+const pages = new URL('../docs/', import.meta.url);
 const policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'";
 
 export default defineConfig({
@@ -19,9 +19,10 @@ export default defineConfig({
         server.middlewares.use((request, response, next) => {
           const path = request.url?.split('?')[0];
           if (path === '/') request.url = '/browser.html';
-          if (path !== '/worker.js') return next();
-          readFile(worker).then(source => {
-            response.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+          const worker = path === '/worker.js';
+          if (!worker && path !== '/showcase/stand-engine-1.zip') return next();
+          readFile(new URL(path.slice(1), pages)).then(source => {
+            response.setHeader('Content-Type', worker ? 'text/javascript; charset=utf-8' : 'application/zip');
             response.end(source);
           }).catch(next);
         });
