@@ -1,5 +1,10 @@
 """Close documented stud and tube seams by re-triangulating their mounting planes."""
-import manifold3d
+import sys
+
+if sys.platform == "emscripten":
+    from shapely import constrained_delaunay_triangles
+else:
+    import manifold3d
 import numpy as np
 import trimesh
 from shapely.geometry import Polygon
@@ -30,6 +35,25 @@ def directed_boundary(faces):
         key = min(a, b), max(a, b)
         seen[key] = None if key in seen else (a, b)
     return [edge for edge in seen.values() if edge is not None]
+
+
+def triangulate_rings(rings):
+    if sys.platform != 'emscripten':
+        return manifold3d.triangulate(rings)
+    from shapely.geometry.polygon import orient
+
+    polygons = [(ring, Polygon(ring)) for ring in rings]
+    shells = [ring for ring, poly in polygons if poly.exterior.is_ccw]
+    holes = [ring for ring, poly in polygons if not poly.exterior.is_ccw]
+    ids = {tuple(point): index for index, point in enumerate(np.concatenate(rings))}
+    faces = []
+    for shell in shells:
+        outer = Polygon(shell)
+        interior = [hole for hole in holes if outer.contains(Polygon(hole))]
+        triangles = constrained_delaunay_triangles(Polygon(shell, interior))
+        for triangle in triangles.geoms:
+            faces.append([ids[point] for point in list(orient(triangle).exterior.coords)[:3]])
+    return np.asarray(faces, dtype=int).reshape(-1, 3)
 
 
 def stitch_mounts(mesh):
@@ -65,7 +89,9 @@ def stitch_mounts(mesh):
             if direction < 0:
                 ring_ids = [loop[::-1] for loop in ring_ids]
             rings = [v[loop, :2] for loop in ring_ids]
-            poly_faces = manifold3d.triangulate(rings)
+            poly_faces = triangulate_rings(rings)
+            if not len(poly_faces):
+                continue
             indexes = np.concatenate(ring_ids)
             if direction < 0:
                 poly_faces = poly_faces[:, ::-1]

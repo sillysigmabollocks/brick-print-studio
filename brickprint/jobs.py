@@ -245,6 +245,9 @@ class Studio:
         job['missing'] = sum(row['validation_status'] == 'unavailable' for row in results.values())
         return job
 
+    def progress(self, job_id, message):
+        self.store.update(job_id, message=message)
+
     def run(self, job_id):
         job = self.store.get(job_id)
         self.store.update(job_id, state='running', message='Preparing job')
@@ -252,7 +255,7 @@ class Studio:
         def status(message):
             if self.stop.is_set():
                 raise JobInterrupted()
-            self.store.update(job_id, message=message)
+            self.progress(job_id, message)
 
         library = None
         try:
